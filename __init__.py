@@ -1,6 +1,7 @@
 """
 Add suport for ITEAD devices like SONOFF without firmware flashing
 """
+import asyncio
 import logging
 from collections import OrderedDict
 
@@ -11,7 +12,8 @@ import voluptuous as vol
 
 _LOGGER = logging.getLogger(__name__)
 
-REQUIREMENTS = ['websockets', 'deepmerge', 'coolkit-client-phoenix']
+#'coolkit-client-phoenix-ng>=1.0.0'
+REQUIREMENTS = ['websockets', 'pycryptodome', 'zeroconf']
 
 DOMAIN = 'sonoff'
 CONF_REGION = 'region'
@@ -26,9 +28,12 @@ CONFIG_SCHEMA = vol.Schema({
 
 
 async def async_setup(hass: HomeAssistant, config: OrderedDict):
-    from coolkit_client import CoolkitSession
-    from coolkit_client.device_control import CoolkitDeviceControl
-    from coolkit_client.discover import CoolkitDevicesDiscovery
+    from .coolkit_client import CoolkitSession
+    from .coolkit_client.discover import CoolkitDevicesDiscovery
+
+    known_devices = config.get('sonoff', {}).get('known_devices')
+    if known_devices is None:
+        known_devices = {}
 
     res = await CoolkitSession.login(
         config.get(DOMAIN, {}).get(CONF_USERNAME, ''),
@@ -37,11 +42,10 @@ async def async_setup(hass: HomeAssistant, config: OrderedDict):
     )
 
     if not res:
-        _LOGGER.error("Unable to login to coolikt server, please check your credentials")
-        return False
+        _LOGGER.error("Unable to login to coolikt server, please check your credentials.")
 
-    await CoolkitDevicesDiscovery.discover()
-    CoolkitDeviceControl.start_daemon()
+    await CoolkitDevicesDiscovery.discover(known_devices)
+    await asyncio.sleep(2)
 
     for component in ['switch', 'sensor']:
         await discovery.async_load_platform(hass, component, DOMAIN, {}, config)

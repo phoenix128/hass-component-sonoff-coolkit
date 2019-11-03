@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
-from coolkit_client.device import CoolkitDeviceSwitch
-from coolkit_client import CoolkitDevicesRepository
+from .coolkit_client.device import CoolkitDeviceSwitch
+from .coolkit_client import CoolkitDevicesRepository
 from homeassistant.components.switch import SwitchDevice, DOMAIN
 from homeassistant.const import STATE_ON, STATE_OFF
 from homeassistant.core import HomeAssistant
@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from coolkit_client import CoolkitDevice
+    from .coolkit_client import CoolkitDevice
 
 
 async def async_setup_platform(
@@ -50,7 +50,10 @@ class SonoffSwitch(SwitchDevice):
 
     @property
     def entity_id(self) -> str:
-        return DOMAIN + '.sonoff_' + self._device.device_id + '_' + str(self._index)
+        if len(self._device.switches) > 1:
+            return DOMAIN + '.sonoff_' + self._device.device_id + '_' + str(self._index + 1)
+        else:
+            return DOMAIN + '.sonoff_' + self._device.device_id
 
     @property
     def available(self) -> bool:
@@ -58,7 +61,10 @@ class SonoffSwitch(SwitchDevice):
 
     @property
     def name(self) -> str:
-        return self._device.name
+        if len(self._device.switches) > 1:
+            return self._device.name + ' ' + str(self._index + 1)
+        else:
+            return self._device.name
 
     @property
     def should_poll(self) -> bool:
